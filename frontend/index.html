@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legalify - Understand Your Documents</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Legalify</h1>
+        <p>Your AI-powered legal assistant.</p>
+    </header>
+
+    <main>
+        <div id="upload-container">
+            <form>
+                <input type="file" id="file-input" accept=".pdf,.docx,.txt">
+                <button id="analyze-button">Analyze Document</button>
+            </form>
+        </div>
+
+        <div id="loader" class="hidden">
+            <p>Processing document...</p>
+        </div>
+
+        <div id="chat-container" class="hidden">
+            <div class="chat-header">
+                <h2>Analysis</h2>
+                <div>
+                    <button id="glossary-button">Glossary</button>
+                    <button id="new-analysis-button">New Analysis</button>
+                </div>
+            </div>
+            <div id="chat-box"></div>
+            <form id="chat-form">
+                <input type="text" id="user-input" placeholder="Ask a question...">
+                <button type="submit">Send</button>
+            </form>
+        </div>
+    </main>
+
+    <div id="glossary-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Glossary of Terms</h2>
+                <span class="close-button">&times;</span>
+            </div>
+            <div id="glossary-content"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Disclaimer: This tool is for informational purposes only and does not constitute legal advice.</p>
+    </footer>
+</body>
+</html>

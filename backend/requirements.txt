@@ -1,0 +1,10 @@
+flask
+flask-Cors
+python-dotenv
+google-cloud-aiplatform
+langchain
+langchain-community
+langchain-google-vertexai
+pypdf
+python-docx
+faiss-cpu

@@ -1,0 +1,32 @@
+# Specify the Docker Compose file format version
+version: '3.8'
+
+# Define the services for our application
+services:
+  # Define the backend service
+  backend:
+    # Specify the build context for the Dockerfile
+    # Docker will look for a Dockerfile in the ./backend directory
+    build: ./backend
+
+    # Map port 5000 on the host machine to port 5000 in the container
+    # This allows us to access the Flask application from the host browser
+    ports:
+      - "5000:5000"
+
+    # Mount volumes to share data between the host and the container
+    volumes:
+      # This is crucial for Google Cloud authentication.
+      # It mounts the host machine's gcloud configuration directory into the container
+      # at /root/.config/gcloud. This allows the Vertex AI SDK inside the container
+      # to use the credentials obtained via 'gcloud auth application-default login'.
+      # The ':ro' makes the volume read-only, enhancing security.
+      - ~/.config/gcloud:/root/.config/gcloud:ro
+
+    # Specify the .env file to load environment variables into the container
+    # This will load GOOGLE_CLOUD_PROJECT from ./backend/.env
+    env_file:
+      - ./backend/.env
+
+    # Optional: Restart the container if it exits unexpectedly
+    restart: unless-stopped

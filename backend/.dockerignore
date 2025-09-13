@@ -1,0 +1,12 @@
+# Exclude the Python virtual environment directory
+venv/
+
+# Exclude Python bytecode files
+__pycache__/
+
+# Exclude the .env file, as secrets should be managed securely by the cloud service
+.env
+
+# Exclude common IDE configuration directories
+.vscode/
+.idea/
