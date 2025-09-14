@@ -8,3 +8,6 @@ langchain-google-vertexai
 pypdf
 python-docx
 faiss-cpu
+pytesseract
+pdf2image
+pillow
