@@ -9,9 +9,5 @@ langchain-community
 langchain-google-vertexai
 pypdf
 faiss-cpu
-pytesseract
-pdf2image
-pillow
 textstat
 numpy
-gunicorn==20.1.0

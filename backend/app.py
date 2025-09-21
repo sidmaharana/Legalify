@@ -14,9 +14,6 @@ from dotenv import load_dotenv
 import vertexai
 from pypdf import PdfReader
 from docx import Document
-import pytesseract
-from pdf2image import convert_from_path
-from PIL import Image
 
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -94,24 +91,9 @@ class Glossary(BaseModel):
     glossary: List[GlossaryTerm] = Field(description="A list of identified legal terms and their definitions.")
 
 # --- Helper Functions ---
-def _extract_text_with_ocr(image) -> str:
-    """Extracts text from a PIL Image using Tesseract OCR."""
-    try:
-        tesseract_cmd = os.getenv("TESSERACT_CMD", "tesseract")
-        pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
-        return pytesseract.image_to_string(image)
-    except pytesseract.TesseractNotFoundError:
-        raise RuntimeError(
-            f"Tesseract is not installed or not in your PATH. Checked command: {tesseract_cmd}"
-        )
-    except Exception as e:
-        print(f"Error during OCR: {e}")
-        return ""
-
 def extract_text_from_file(file) -> List[LangchainDocument]:
     """
-    Extracts text content from various document formats (PDF, DOCX, TXT, PNG, JPG, JPEG).
-    Performs OCR on PDFs with little text and on image files.
+    Extracts text content from various document formats (PDF, DOCX, TXT).
     Returns a list of LangchainDocument objects with metadata.
     """
     file_extension = os.path.splitext(file.filename)[1].lower()
@@ -119,42 +101,9 @@ def extract_text_from_file(file) -> List[LangchainDocument]:
 
     if file_extension == ".pdf":
         reader = PdfReader(file)
-        full_text = []
         for i, page in enumerate(reader.pages):
             page_content = page.extract_text() or ""
-            full_text.append(page_content)
             documents.append(LangchainDocument(page_content=page_content, metadata={'source': f'Page {i+1}'}))
-
-        # Always attempt OCR and compare with initial extraction.
-        print("Attempting OCR on PDF...")
-        file.seek(0)
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
-            temp_pdf.write(file.read())
-            temp_pdf_path = temp_pdf.name
-
-        try:
-            poppler_bin_path = os.getenv("POPPLER_PATH")
-            if poppler_bin_path:
-                images = convert_from_path(temp_pdf_path, poppler_path=poppler_bin_path)
-            else:
-                # Fallback if POPPLER_PATH is not set (e.g., for local development without explicit path)
-                print("Warning: POPPLER_PATH environment variable not set. OCR might fail on Render.")
-                images = convert_from_path(temp_pdf_path) # This might fail if Poppler is not in system PATH
-            ocr_documents = []
-            for i, image in enumerate(images):
-                ocr_text = _extract_text_with_ocr(image)
-                ocr_documents.append(LangchainDocument(page_content=ocr_text, metadata={'source': f'Page {i+1} (OCR)'}))
-            
-            # Replace original documents with OCR results if OCR found more text
-            if len("\n".join([d.page_content for d in ocr_documents]).strip()) > len("\n".join(full_text).strip()):
-                documents = ocr_documents
-        finally:
-            os.remove(temp_pdf_path)
-
-    elif file_extension in [".png", ".jpg", ".jpeg"]:
-        image = Image.open(file)
-        ocr_text = _extract_text_with_ocr(image)
-        documents.append(LangchainDocument(page_content=ocr_text, metadata={'source': 'Image (OCR)'}))
 
     elif file_extension == ".docx":
         doc = Document(file)
@@ -168,7 +117,7 @@ def extract_text_from_file(file) -> List[LangchainDocument]:
         documents.append(LangchainDocument(page_content=text_content, metadata={'source': 'Document'}))
 
     else:
-        raise ValueError(f"Unsupported file type: {file_extension}")
+        raise ValueError(f"Unsupported file type: {file_extension}. Only PDF, DOCX, and TXT are supported without OCR.")
 
     return documents
 
