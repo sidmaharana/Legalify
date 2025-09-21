@@ -8,11 +8,10 @@ langchain
 langchain-community
 langchain-google-vertexai
 pypdf
-python-docx
 faiss-cpu
 pytesseract
 pdf2image
 pillow
-gunicorn==21.2.0textstat
+textstat
 numpy
 gunicorn==20.1.0
