@@ -7,7 +7,7 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -645,3 +645,12 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     # Set debug=False for production; enable as needed
     app.run(debug=False, host='0.0.0.0', port=port)
+
+# --- Frontend Serving Routes ---
+@app.route('/')
+def serve_frontend():
+    return send_from_directory('../frontend', 'index.html')
+
+@app.route('/<path:path>')
+def serve_frontend_files(path):
+    return send_from_directory('../frontend', path)

@@ -13,5 +13,6 @@ faiss-cpu
 pytesseract
 pdf2image
 pillow
-google-generativeai
-gunicorn==21.2.0
+gunicorn==21.2.0textstat
+numpy
+gunicorn==20.1.0
