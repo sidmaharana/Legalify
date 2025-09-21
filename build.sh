@@ -1,16 +1,13 @@
-#!/usr/bin/env bash
+#!/bin/bash
+# Install system dependencies
+sudo apt-get update
+sudo apt-get install -y poppler-utils tesseract-ocr
 
-# Exit immediately if a command exits with a non-zero status.
-set -e
+# Optional: confirm installation
+poppler_path=/usr/bin
+echo "Poppler installed at $poppler_path"
+tesseract --version
 
-echo "--- Installing Poppler ---"
-# Install Poppler utilities (poppler-utils)
-# This command is for Debian/Ubuntu based systems, which Render uses.
-apt-get update && apt-get install -y poppler-utils
-
-echo "--- Poppler Installation Complete ---"
-
-# Continue with Python dependencies
-echo "--- Installing Python Dependencies ---"
+# Install Python dependencies
+pip install --upgrade pip
 pip install -r backend/requirements.txt
-echo "--- Python Dependencies Installation Complete ---"
