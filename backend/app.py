@@ -39,18 +39,38 @@ app = Flask(__name__)
 CORS(app)
 
 # --- Vertex AI Initialization ---
+credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+if not credentials_json:
+    print("Error: GOOGLE_APPLICATION_CREDENTIALS_JSON not set in environment variables. Vertex AI will not initialize.")
+    # Exit or handle error gracefully if credentials are critical
+else:
+    # Write the JSON content to a temporary file
+    # Render's /tmp directory is writable and cleared between deployments
+    try:
+        temp_key_file = "/tmp/render_vertexai_key.json"
+        with open(temp_key_file, "w") as f:
+            f.write(credentials_json)
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_key_file
+        print(f"Service account key written to {temp_key_file} and GOOGLE_APPLICATION_CREDENTIALS set.")
+    except Exception as e:
+        print(f"Error writing service account key to temporary file: {e}")
+
 google_cloud_project = os.getenv("GOOGLE_CLOUD_PROJECT")
 google_cloud_location = os.getenv("GOOGLE_CLOUD_LOCATION", None)  # optional
 if not google_cloud_project:
-    print("Error: GOOGLE_CLOUD_PROJECT environment variable not set. Please set it in your .env file.")
+    print("Error: GOOGLE_CLOUD_PROJECT environment variable not set. Please set it in your .env file or Render.")
 else:
-    # If you have location set, include it
-    if google_cloud_location:
-        vertexai.init(project=google_cloud_project, location=google_cloud_location)
-        print(f"Vertex AI initialized for project: {google_cloud_project} (location: {google_cloud_location})")
-    else:
-        vertexai.init(project=google_cloud_project)
-        print(f"Vertex AI initialized for project: {google_cloud_project}")
+    try:
+        if google_cloud_location:
+            vertexai.init(project=google_cloud_project, location=google_cloud_location)
+            print(f"Vertex AI initialized for project: {google_cloud_project} (location: {google_cloud_location})")
+        else:
+            vertexai.init(project=google_cloud_project)
+            print(f"Vertex AI initialized for project: {google_cloud_project}")
+    except Exception as e:
+        print(f"Error initializing Vertex AI: {e}")
+        # Exit or raise to prevent further errors if AI is critical
+        pass
 
 # Create a Vertex LLM instance (model name may vary depending on availability)
 llm = VertexAI(model_name="gemini-2.5-flash")
