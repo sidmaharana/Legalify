@@ -1,0 +1,9 @@
+**SimpleApp End User License Agreement (EULA)**
+
+This software is provided to you by Pune Digital Solutions. By using this software, you agree to these terms.
+
+1.  **License Grant:** You are given permission to use, copy, and create modified versions of this software for any purpose, free of charge. You must include the original copyright notice in all copies.
+
+2.  **Warranty:** The software is offered on an "as-is" basis, without any warranty of any kind. The entire risk as to the quality and performance of the software is with you.
+
+3.  **Patent Rights:** If a contributor to this software holds patents that would be infringed by your use of their contribution, they grant you a license to those patents. This license terminates if you sue anyone alleging that the software infringes a patent.

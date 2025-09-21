@@ -1,0 +1,5 @@
+langchain
+langchain-google-vertexai
+python-dotenv
+textstat
+numpy

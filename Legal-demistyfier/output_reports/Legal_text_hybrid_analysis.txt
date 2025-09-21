@@ -1,0 +1,42 @@
+### Comprehensive Hybrid Analysis for: Legal_text.txt
+
+--- Layer 1: Pre-analysis Quick Flags ---
+
+This section identifies known jargon and structurally complex sentences.
+- **Rule-Based Jargon Found:** indemnify, hereto, hold harmless, jurisdiction, heretofore, hereunder
+- **High-Complexity Sentences Found:** 3 sentence(s)
+
+
+--- Layer 2: Detailed Clause-by-Clause Analysis ---
+
+This is a comprehensive analysis of the entire document provided by the AI.
+
+**Analysis Item 1:**
+- **Term/Clause:** "N/A"
+- **Context:** N/A
+- **Plain English Explanation:** N/A
+- **Potential Impact:** N/A
+
+**Analysis Item 2:**
+- **Term/Clause:** "N/A"
+- **Context:** N/A
+- **Plain English Explanation:** N/A
+- **Potential Impact:** N/A
+
+**Analysis Item 3:**
+- **Term/Clause:** "N/A"
+- **Context:** N/A
+- **Plain English Explanation:** N/A
+- **Potential Impact:** N/A
+
+**Analysis Item 4:**
+- **Term/Clause:** "N/A"
+- **Context:** N/A
+- **Plain English Explanation:** N/A
+- **Potential Impact:** N/A
+
+**Analysis Item 5:**
+- **Term/Clause:** "N/A"
+- **Context:** N/A
+- **Plain English Explanation:** N/A
+- **Potential Impact:** N/A

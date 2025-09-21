@@ -1,0 +1,5 @@
+**Contributor License Agreement for Project "Aakash"**
+
+By submitting a contribution, you grant the project a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable copyright license to reproduce and distribute your work.
+
+Furthermore, you agree that your contribution is compatible with, and can be distributed under the terms of, the GNU GPLv3. You affirm that you have the right to grant these permissions.

@@ -112,7 +112,7 @@ footer {
     color: var(--light-text-color);
 }
 
-#analyze-button {
+.primary-button {
     background-color: var(--primary-color);
     color: white;
     border: none;
@@ -123,8 +123,12 @@ footer {
     transition: background-color 0.3s ease;
 }
 
-#analyze-button:hover {
+.primary-button:hover {
     background-color: var(--primary-dark-color);
+}
+
+#analyze-button {
+    /* No specific styles needed here, will use .primary-button */
 }
 
 /* Loader */

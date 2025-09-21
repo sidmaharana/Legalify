@@ -1,0 +1,9 @@
+**Cloud-Based Analytics Service Agreement**
+
+This agreement grants you a non-exclusive, non-transferable right to access and use our proprietary analytics service for your internal business purposes.
+
+The charting library used within this service is an open-source component governed by the terms of the Apache License 2.0. Your rights and obligations with respect to this specific component are detailed therein. Data processing is performed in our Pune data center.**Cloud-Based Analytics Service Agreement**
+
+This agreement grants you a non-exclusive, non-transferable right to access and use our proprietary analytics service for your internal business purposes.
+
+The charting library used within this service is an open-source component governed by the terms of the Apache License 2.0. Your rights and obligations with respect to this specific component are detailed therein. Data processing is performed in our Pune data center.

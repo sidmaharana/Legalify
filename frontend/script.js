@@ -11,6 +11,7 @@
 const uploadForm = document.getElementById('upload-container').querySelector('form');
 const fileInput = document.getElementById('file-input');
 const analyzeButton = document.getElementById('analyze-button');
+const ragAnalyzeButton = document.getElementById('rag-analyze-button');
 const loader = document.getElementById('loader');
 const chatContainer = document.getElementById('chat-container');
 const uploadContainer = document.getElementById('upload-container');
@@ -39,6 +40,10 @@ let chatHistory = [];
 uploadForm.addEventListener('submit', async (event) => {
     event.preventDefault(); // Prevents the default form submission behavior (page reload).
     await handleAnalysis(); // Calls the asynchronous function to handle document analysis.
+});
+
+ragAnalyzeButton.addEventListener('click', async () => {
+    await handleRAGAnalysis();
 });
 
 // Attaches a submit event listener to the chat input form.
@@ -199,15 +204,93 @@ async function handleAnalysis() {
         }
 
     } catch (error) {
-        // Log the error to the console for debugging.
         console.error('Error during document analysis:', error);
-        // Display a user-friendly error message directly in the chat window.
-        addMessageToChat(`Error: ${error.message}. Please try again.`, 'ai', 'error-message');
-        // Reset the UI to its initial state on error.
+        addMessageToChat('An error occurred during document analysis. Please try again.', 'ai', 'error-message');
         uploadContainer.classList.remove('hidden');
         chatContainer.classList.add('hidden');
     } finally {
         // Ensure the loader is always hidden, regardless of success or failure.
+        loader.classList.add('hidden');
+    }
+}
+
+/**
+ * Handles the RAG analysis process.
+ * - Retrieves the selected file from the input.
+ * - Manages UI state (shows loader, hides upload form).
+ * - Sends the file to the backend's /api/rag_analyze endpoint using apiClient.
+ * - Displays the RAG analysis results.
+ * - Implements robust error handling and ensures the loader is hidden.
+ */
+async function handleRAGAnalysis() {
+    const file = fileInput.files[0];
+
+    if (!file) {
+        addMessageToChat('Please select a file for RAG analysis.', 'ai', 'error-message');
+        return;
+    }
+
+    loader.classList.remove('hidden');
+    uploadContainer.classList.add('hidden');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const data = await apiClient('/api/rag_analyze', {
+            method: 'POST',
+            body: formData,
+        });
+
+        chatContainer.classList.remove('hidden');
+        addMessageToChat('RAG Analysis Results:', 'ai');
+
+        if (data.rag_analysis && data.rag_analysis.length > 0) {
+            data.rag_analysis.forEach(item => {
+                addMessageToChat(`**Query:** ${item.query}`, 'ai');
+                if (item.analysis && item.analysis.explanation) {
+                    addMessageToChat(`**Explanation:** ${item.analysis.explanation}`, 'ai');
+                }
+                if (item.analysis && item.analysis.impact) {
+                    addMessageToChat(`**Impact:** ${item.analysis.impact}`, 'ai');
+                }
+                addMessageToChat('---', 'ai');
+            });
+        } else {
+            addMessageToChat('No RAG analysis results found.', 'ai');
+        }
+
+        // Store state from the backend response to enable Q&A
+        faissIndex = data.faiss_index;
+        extractedText = data.extracted_text;
+        addMessageToChat('Document processed for RAG. Ready to ask questions!', 'ai');
+
+        // Display suggested questions as clickable buttons if available.
+        if (data.suggested_questions && data.suggested_questions.length > 0) {
+            const suggestedQuestionsDiv = document.createElement('div');
+            suggestedQuestionsDiv.classList.add('suggested-questions');
+
+            data.suggested_questions.forEach(q => {
+                const button = document.createElement('button');
+                button.classList.add('suggested-q-btn');
+                button.textContent = q;
+                // Attach a click listener to each button to auto-fill and submit the question.
+                button.addEventListener('click', async () => {
+                    userInput.value = q; // Set the input field value to the suggested question.
+                    await handleQuestion(); // Programmatically submit the question.
+                });
+                suggestedQuestionsDiv.appendChild(button);
+            });
+            chatBox.appendChild(suggestedQuestionsDiv);
+            chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom to show new buttons.
+        }
+
+    } catch (error) {
+        console.error('Error during RAG analysis:', error);
+        addMessageToChat('An error occurred during RAG analysis. Please try again.', 'ai', 'error-message');
+        uploadContainer.classList.remove('hidden');
+        chatContainer.classList.add('hidden');
+    } finally {
         loader.classList.add('hidden');
     }
 }
@@ -271,12 +354,10 @@ async function handleQuestion() {
 
     } catch (error) {
         console.error('Error during Q&A:', error);
-        // Remove the typing indicator if it's still present.
         if (chatBox.contains(typingIndicator)) {
             chatBox.removeChild(typingIndicator);
         }
-        // Display a user-friendly error message in the chat window.
-        addMessageToChat(`Error: ${error.message}. Please try again.`, 'ai', 'error-message');
+        addMessageToChat('An error occurred during Q&A. Please try again.', 'ai', 'error-message');
     }
 }
 
@@ -325,6 +406,6 @@ async function handleGlossary() {
 
     } catch (error) {
         console.error('Error generating glossary:', error);
-        glossaryContent.innerHTML = `<p class="error-message">Error: ${error.message}</p>`;
+        glossaryContent.innerHTML = '<p class="error-message">An error occurred while generating the glossary. Please try again.</p>';
     }
 }

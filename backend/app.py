@@ -28,6 +28,11 @@ from langchain.memory import ConversationBufferMemory
 from langchain_core.output_parsers import JsonOutputParser
 from process_documents import find_keywords_with_prerequisites
 
+# Import functions from Legal-demistyfier
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'Legal-demistyfier')))
+from analyzer import find_relevant_chunks, get_rag_analysis, discover_concepts_with_ai
+
 # Load environment variables from the .env file
 load_dotenv()
 
@@ -62,6 +67,20 @@ except FileNotFoundError:
     print("Warning: legal_keywords.json not found. Keyword analysis will not be performed.")
 except json.JSONDecodeError:
     print("Error: Could not decode legal_keywords.json. Please check its format.")
+
+# --- Load RAG Vector Index ---
+RAG_INDEXED_DATA = []
+RAG_INDEX_FILE = os.path.join(os.path.dirname(__file__), '..', 'Legal-demistyfier', 'vector_index.pkl')
+try:
+    with open(RAG_INDEX_FILE, 'rb') as f:
+        RAG_INDEXED_DATA = pickle.load(f)
+    print(f"Loaded RAG vector index with {len(RAG_INDEXED_DATA)} entries.")
+    print(f"Type of RAG_INDEXED_DATA: {type(RAG_INDEXED_DATA)}")
+    print(f"Length of RAG_INDEXED_DATA: {len(RAG_INDEXED_DATA)}")
+except FileNotFoundError:
+    print(f"Warning: RAG vector index file {RAG_INDEX_FILE} not found. RAG analysis will not be performed.")
+except Exception as e:
+    print(f"Error loading RAG vector index: {e}")
 
 # --- Pydantic Models for Structured Output ---
 class GlossaryTerm(BaseModel):
@@ -286,6 +305,144 @@ Document: {document}
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
+    finally:
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+
+@app.route('/api/rag_analyze', methods=['POST'])
+def rag_analyze_document():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part in the request'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    temp_file_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
+            file.save(temp_file.name)
+            temp_file_path = temp_file.name
+
+        # Extract text from the document
+        extracted_documents = extract_text_from_file(file)
+        full_extracted_text = "\n".join([doc.page_content for doc in extracted_documents])
+
+        if not full_extracted_text:
+            return jsonify({'error': 'Could not extract text from document for RAG analysis.'}), 400
+
+        if not RAG_INDEXED_DATA:
+            return jsonify({'error': 'RAG knowledge base not loaded. Please ensure vector_index.pkl exists.'}), 500
+
+        # --- Document Processing for Q&A (copied from /api/process) ---
+        # Split text into chunks for embeddings and FAISS
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+        chunks = text_splitter.split_documents(extracted_documents)
+
+        # Create embeddings and vector store
+        embeddings_model = VertexAIEmbeddings(model_name="text-embedding-004")
+        vector_store = FAISS.from_documents(chunks, embeddings_model)
+
+        # Save FAISS index to temp directory and base64-encode files to return to frontend
+        with tempfile.TemporaryDirectory() as temp_dir:
+            vector_store.save_local(temp_dir, index_name="my_faiss_index")
+            faiss_index_path = os.path.join(temp_dir, "my_faiss_index.faiss")
+            pkl_path = os.path.join(temp_dir, "my_faiss_index.pkl")
+
+            # some FAISS versions create other filenames; fallback to any .faiss/.pkl present
+            if not os.path.exists(faiss_index_path):
+                for fname in os.listdir(temp_dir):
+                    if fname.endswith(".faiss"):
+                        faiss_index_path = os.path.join(temp_dir, fname)
+                        break
+            if not os.path.exists(pkl_path):
+                for fname in os.listdir(temp_dir):
+                    if fname.endswith(".pkl"):
+                        pkl_path = os.path.join(temp_dir, fname)
+                        break
+
+            with open(faiss_index_path, "rb") as f:
+                faiss_index_bytes = f.read()
+            with open(pkl_path, "rb") as f:
+                pkl_bytes = f.read()
+
+        encoded_faiss_data = {
+            "faiss_index": base64.b64encode(faiss_index_bytes).decode('utf-8'),
+            "pkl_data": base64.b64encode(pkl_bytes).decode('utf-8')
+        }
+        # --- End Document Processing for Q&A ---
+
+        # Discover concepts using Vertex AI
+        search_queries = discover_concepts_with_ai(full_extracted_text, llm)
+        if isinstance(search_queries, str):
+            return jsonify({'error': f'Error discovering concepts: {search_queries}'}), 500
+
+        rag_analysis_results = []
+        for query in search_queries:
+            # Retrieve relevant knowledge
+            relevant_chunks = find_relevant_chunks(query, RAG_INDEXED_DATA, embeddings_model)
+            retrieved_knowledge = "\n\n".join([chunk['text'] for chunk in relevant_chunks])
+
+            # Generate RAG analysis
+            analysis = get_rag_analysis(query, retrieved_knowledge, llm)
+            rag_analysis_results.append({
+                "query": query,
+                "analysis": analysis
+            })
+
+        # Prepare a robust question generation chain (explicit LLMChain)
+        question_gen_template = """
+You are a paralegal. Read the following document and generate 3-4 simple, easy-to-understand questions for a non-legal professional about potential risks, obligations, deadlines, or unclear clauses mentioned in the document.
+Return ONLY a valid JSON array of strings, where each string is a question.
+Document: {document}
+"""
+        QUESTION_GEN_PROMPT = PromptTemplate(
+            template=question_gen_template,
+            input_variables=["document"]
+        )
+        question_generator = LLMChain(llm=llm, prompt=QUESTION_GEN_PROMPT)
+
+        suggested_questions_raw = None
+        try:
+            suggested_questions_raw = question_generator.run({"document": full_extracted_text})
+        except Exception:
+            # fallback to invoking if run is not supported
+            try:
+                suggested_questions_raw = question_generator.invoke({"document": full_extracted_text})
+            except Exception as e:
+                suggested_questions_raw = "[]"
+                print(f"Question generator failed: {e}")
+
+        if isinstance(suggested_questions_raw, str):
+            suggested_questions_raw = suggested_questions_raw.strip().replace('```json', '').replace('```', '')
+        else:
+            # if chain returned dict with text inside
+            if isinstance(suggested_questions_raw, dict):
+                suggested_questions_raw = suggested_questions_raw.get('output_text', json.dumps([]))
+            else:
+                suggested_questions_raw = str(suggested_questions_raw)
+
+        suggested_questions = []
+        try:
+            parsed_questions = json.loads(suggested_questions_raw)
+            if isinstance(parsed_questions, list):
+                suggested_questions = parsed_questions
+        except json.JSONDecodeError:
+            # best-effort: try to extract lines that look like questions
+            lines = [l.strip() for l in suggested_questions_raw.splitlines() if l.strip().endswith('?')]
+            if lines:
+                suggested_questions = lines
+
+        return jsonify({
+            'extracted_text': full_extracted_text,
+            'faiss_index': encoded_faiss_data,
+            'rag_analysis': rag_analysis_results,
+            'suggested_questions': suggested_questions
+        }), 200
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'An unexpected error occurred during RAG analysis: {str(e)}'}), 500
     finally:
         if temp_file_path and os.path.exists(temp_file_path):
             os.remove(temp_file_path)
