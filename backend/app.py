@@ -131,7 +131,13 @@ def extract_text_from_file(file) -> List[LangchainDocument]:
             temp_pdf_path = temp_pdf.name
 
         try:
-            images = convert_from_path(temp_pdf_path, poppler_path=r"D:\SIDHARTH\Projects\Legalify\Release-25.07.0-0\poppler-25.07.0\Library\bin")
+            poppler_bin_path = os.getenv("POPPLER_PATH")
+            if poppler_bin_path:
+                images = convert_from_path(temp_pdf_path, poppler_path=poppler_bin_path)
+            else:
+                # Fallback if POPPLER_PATH is not set (e.g., for local development without explicit path)
+                print("Warning: POPPLER_PATH environment variable not set. OCR might fail on Render.")
+                images = convert_from_path(temp_pdf_path) # This might fail if Poppler is not in system PATH
             ocr_documents = []
             for i, image in enumerate(images):
                 ocr_text = _extract_text_with_ocr(image)
