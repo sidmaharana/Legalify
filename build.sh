@@ -1,11 +1,14 @@
 #!/bin/bash
-# Install system dependencies
+# Update packages
 sudo apt-get update
+
+# Install Poppler (for PDF rendering) and Tesseract OCR
 sudo apt-get install -y poppler-utils tesseract-ocr
 
-# Optional: confirm installation
-poppler_path=/usr/bin
-echo "Poppler installed at $poppler_path"
+# Verify installations
+echo "Poppler version:"
+pdftoppm -v
+echo "Tesseract version:"
 tesseract --version
 
 # Install Python dependencies

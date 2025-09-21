@@ -97,10 +97,12 @@ class Glossary(BaseModel):
 def _extract_text_with_ocr(image) -> str:
     """Extracts text from a PIL Image using Tesseract OCR."""
     try:
+        tesseract_cmd = os.getenv("TESSERACT_CMD", "tesseract")
+        pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
         return pytesseract.image_to_string(image)
     except pytesseract.TesseractNotFoundError:
         raise RuntimeError(
-            "Tesseract is not installed or not in your PATH. Please install it."
+            f"Tesseract is not installed or not in your PATH. Checked command: {tesseract_cmd}"
         )
     except Exception as e:
         print(f"Error during OCR: {e}")
