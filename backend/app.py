@@ -26,6 +26,7 @@ from langchain.prompts import PromptTemplate
 from langchain.docstore.document import Document as LangchainDocument
 from langchain.memory import ConversationBufferMemory
 from langchain_core.output_parsers import JsonOutputParser
+from process_documents import find_keywords_with_prerequisites
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -50,6 +51,17 @@ else:
 
 # Create a Vertex LLM instance (model name may vary depending on availability)
 llm = VertexAI(model_name="gemini-2.5-flash")
+
+# --- Load Legal Keywords ---
+LEGAL_KEYWORDS = []
+try:
+    with open("backend/legal_keywords.json", 'r', encoding='utf-8') as f:
+        LEGAL_KEYWORDS = json.load(f)
+    print(f"Loaded {len(LEGAL_KEYWORDS)} legal keywords from legal_keywords.json")
+except FileNotFoundError:
+    print("Warning: legal_keywords.json not found. Keyword analysis will not be performed.")
+except json.JSONDecodeError:
+    print("Error: Could not decode legal_keywords.json. Please check its format.")
 
 # --- Pydantic Models for Structured Output ---
 class GlossaryTerm(BaseModel):
@@ -145,9 +157,18 @@ def process_document():
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
 
+    temp_file_path = None
     try:
+        # Save the uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
+            file.save(temp_file.name)
+            temp_file_path = temp_file.name
+
         extracted_documents = extract_text_from_file(file)
         full_extracted_text = "\n".join([doc.page_content for doc in extracted_documents])
+
+        # Find keywords in the document using pre-defined legal keywords
+        found_keywords_data = find_keywords_with_prerequisites(temp_file_path, LEGAL_KEYWORDS, llm)
 
         # Summarize the full document (robust to different langchain versions)
         try:
@@ -212,7 +233,7 @@ def process_document():
 
         # Prepare a robust question generation chain (explicit LLMChain)
         question_gen_template = """
-You are a paralegal. Read the following document and generate 3-4 insightful questions about potential risks, obligations, deadlines, or unclear clauses mentioned in the document.
+You are a paralegal. Read the following document and generate 3-4 simple, easy-to-understand questions for a non-legal professional about potential risks, obligations, deadlines, or unclear clauses mentioned in the document.
 Return ONLY a valid JSON array of strings, where each string is a question.
 Document: {document}
 """
@@ -257,13 +278,17 @@ Document: {document}
             'extracted_text': full_extracted_text,
             'faiss_index': encoded_faiss_data,
             'summary': summary,
-            'suggested_questions': suggested_questions
+            'suggested_questions': suggested_questions,
+            'ai_keyword_analysis': found_keywords_data
         }), 200
 
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
+    finally:
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
 
 @app.route('/api/glossary', methods=['POST'])
 def get_glossary():

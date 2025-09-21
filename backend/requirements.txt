@@ -1,5 +1,7 @@
-flask
-flask-Cors
+Flask
+Flask-Cors
+PyPDF2
+python-docx
 python-dotenv
 google-cloud-aiplatform
 langchain
@@ -11,3 +13,4 @@ faiss-cpu
 pytesseract
 pdf2image
 pillow
+google-generativeai

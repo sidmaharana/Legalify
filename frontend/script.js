@@ -159,7 +159,7 @@ async function handleAnalysis() {
     uploadContainer.classList.add('hidden');
 
     const formData = new FormData();
-    formData.append('file', file); // Append the selected file to a FormData object.
+    formData.append('file', file);
 
     try {
         // Send the file to the backend for processing.
