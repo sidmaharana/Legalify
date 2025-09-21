@@ -61,7 +61,7 @@ llm = VertexAI(model_name="gemini-2.5-flash")
 # --- Load Legal Keywords ---
 LEGAL_KEYWORDS = []
 try:
-    with open("backend/legal_keywords.json", 'r', encoding='utf-8') as f:
+    with open("legal_keywords.json", 'r', encoding='utf-8') as f:
         LEGAL_KEYWORDS = json.load(f)
     print(f"Loaded {len(LEGAL_KEYWORDS)} legal keywords from legal_keywords.json")
 except FileNotFoundError:

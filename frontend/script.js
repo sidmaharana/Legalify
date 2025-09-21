@@ -120,7 +120,8 @@ function resetUI() {
  * @throws {Error} - Throws an error if the network request fails or the API returns an error status.
  */
 async function apiClient(endpoint, options) {
-    const url = `http://127.0.0.1:8080${endpoint}`; // Construct the full URL to the backend.
+    const BASE_API_URL = "https://legalify.onrender.com"; // Replace with your actual Render backend URL
+    const url = `${BASE_API_URL}${endpoint}`;
     const response = await fetch(url, options);
 
     // Check if the HTTP response status is OK (200-299).
